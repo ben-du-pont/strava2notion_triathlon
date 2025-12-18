@@ -1,59 +1,47 @@
 # Strava to Notion Triathlon Sync
 
-Automated GitHub Actions workflow that syncs Strava activities to Notion databases with support for running, cycling, and swimming activities.
+A Python application that automatically syncs your triathlon training activities (swimming, biking, and running) from Strava to a Notion database.
 
 ## Features
 
-- 🏃 **Sport-Specific Fields**: Automatically uses appropriate fields based on activity type (Run, Ride, Swim)
-- 🔄 **Automatic Sync**: Runs hourly via GitHub Actions cron schedule
-- ✅ **Duplicate Prevention**: Checks Strava activity ID to avoid duplicate entries
-- 🔗 **Planned Activity Linking**: Matches and links completed activities to planned activities
-- 📊 **Status Updates**: Automatically marks planned activities as "Done"
-- 🛡️ **Error Handling**: Graceful failure handling - errors don't crash the entire sync
+- 🏊 **Automatic Sync**: Syncs swim, bike, and run activities from Strava to Notion
+- ⏰ **Scheduled Updates**: Runs daily via GitHub Actions
+- 📊 **Activity Details**: Captures distance, duration, elevation, heart rate, and more
+- 🔄 **Smart Updates**: Detects existing activities and updates them instead of creating duplicates
+- 🚀 **Manual Trigger**: Run sync manually via GitHub Actions workflow dispatch
 
-## Architecture
+## Setup
 
-The project consists of three main modules:
+### Prerequisites
 
-- **`strava.py`**: Handles Strava API authentication and activity fetching
-- **`notion.py`**: Manages Notion database queries, inserts, and updates
-- **`sync.py`**: Orchestrates the sync process with branching logic by sport type
+- A Strava account with API access
+- A Notion account with an integration and database
+- GitHub repository with Actions enabled
 
-## Prerequisites
+### 1. Strava API Setup
 
-### Strava Setup
+1. Go to [Strava API Settings](https://www.strava.com/settings/api)
+2. Create an application to get your `Client ID` and `Client Secret`
+3. Generate a refresh token using the OAuth flow
+4. Save these credentials - you'll need them later
 
-1. Create a Strava API application at https://www.strava.com/settings/api
-2. Note your `Client ID` and `Client Secret`
-3. Get a refresh token by following Strava's OAuth flow
+### 2. Notion Setup
 
-### Notion Setup
+1. Create a [Notion integration](https://www.notion.so/my-integrations)
+2. Copy the integration token
+3. Create a database with the following properties:
+   - **Name** (Title)
+   - **Type** (Select: Swim, Ride, Run)
+   - **Date** (Date)
+   - **Distance (km)** (Number)
+   - **Duration (min)** (Number)
+   - **Elevation (m)** (Number)
+   - **Avg Heart Rate** (Number)
+   - **Strava ID** (Number)
+4. Share the database with your integration
+5. Copy the database ID from the URL
 
-1. Create a Notion integration at https://www.notion.so/my-integrations
-2. Note your integration token
-3. Create two databases:
-   - **Activities Database** with properties:
-     - Name (Title)
-     - Strava ID (Number)
-     - Type (Select: Run, Ride, Swim)
-     - Date (Date)
-     - Distance (Number)
-     - Duration (Number)
-     - Elevation (Number)
-     - Average Pace (Number) - for Run/Swim
-     - Average Speed (Number) - for Ride
-     - Average HR (Number) - optional
-     - Average Power (Number) - for Ride
-     - Cadence (Number) - for Run
-     - Planned Activity (Relation to Planned Activities DB)
-   - **Planned Activities Database** with properties:
-     - Date (Date)
-     - Type (Select: Run, Ride, Swim)
-     - Status (Status with "Done" option)
-4. Share both databases with your integration
-5. Copy the database IDs from the URLs
-
-## GitHub Setup
+### 3. Configure GitHub Secrets
 
 Add the following secrets to your GitHub repository (Settings → Secrets and variables → Actions):
 
@@ -61,75 +49,107 @@ Add the following secrets to your GitHub repository (Settings → Secrets and va
 - `STRAVA_CLIENT_SECRET`: Your Strava application client secret
 - `STRAVA_REFRESH_TOKEN`: Your Strava refresh token
 - `NOTION_TOKEN`: Your Notion integration token
-- `NOTION_ACTIVITIES_DB_ID`: ID of your Activities database
-- `NOTION_PLANNED_DB_ID`: ID of your Planned Activities database
+- `NOTION_DATABASE_ID`: Your Notion database ID
 
-## Usage
+### 4. Enable GitHub Actions
 
-### Automatic Sync
+The workflow will run automatically daily at 6 AM UTC. You can also trigger it manually from the Actions tab.
 
-The workflow runs automatically every hour via GitHub Actions cron schedule.
+## Project Structure
 
-### Manual Sync
+```
+.
+├── .github/
+│   └── workflows/
+│       └── sync.yml          # GitHub Actions workflow
+├── src/
+│   ├── strava.py            # Strava API client
+│   ├── notion.py            # Notion API client
+│   └── sync.py              # Main sync script
+├── requirements.txt         # Python dependencies
+└── README.md               # This file
+```
 
-Trigger manually from the Actions tab:
-1. Go to the "Actions" tab in your repository
-2. Select "Sync Strava to Notion" workflow
-3. Click "Run workflow"
+## Local Development
 
-### Local Testing
+### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/ben-du-pont/strava2notion_triathlon.git
+cd strava2notion_triathlon
+
 # Install dependencies
 pip install -r requirements.txt
+```
 
-# Set environment variables
+### Running Locally
+
+Set environment variables:
+
+```bash
 export STRAVA_CLIENT_ID="your_client_id"
 export STRAVA_CLIENT_SECRET="your_client_secret"
 export STRAVA_REFRESH_TOKEN="your_refresh_token"
 export NOTION_TOKEN="your_notion_token"
-export NOTION_ACTIVITIES_DB_ID="your_activities_db_id"
-export NOTION_PLANNED_DB_ID="your_planned_db_id"
+export NOTION_DATABASE_ID="your_database_id"
+```
 
-# Run sync
+Run the sync:
+
+```bash
+cd src
 python sync.py
 ```
 
+Optional environment variables:
+- `DAYS_BACK`: Number of days to look back (default: 7)
+- `DRY_RUN`: Set to "true" to preview without syncing (default: false)
+
+## Usage
+
+### Manual Sync
+
+1. Go to the "Actions" tab in your GitHub repository
+2. Select "Sync Strava to Notion" workflow
+3. Click "Run workflow"
+4. Optionally adjust the number of days to sync
+5. Click "Run workflow" to start
+
+### Scheduled Sync
+
+The workflow runs automatically every day at 6 AM UTC. It syncs activities from the last 7 days by default.
+
 ## How It Works
 
-1. **Fetch Activities**: Gets activities from Strava from the last 7 days
-2. **Check Duplicates**: Skips activities that already exist in Notion (by Strava ID)
-3. **Sport Detection**: Identifies sport type (Run/Ride/Swim) and uses appropriate fields
-4. **Create Entry**: Creates new activity in Notion Activities database
-5. **Match Planned**: Searches for a matching planned activity by date and sport type
-6. **Link & Update**: Links the activity to the planned entry and marks it as "Done"
-
-## Sport-Specific Fields
-
-### Running
-- Average Pace (min/km)
-- Average Heart Rate
-- Cadence (steps per minute)
-
-### Cycling
-- Average Speed (km/h)
-- Average Power (watts)
-- Average Heart Rate
-
-### Swimming
-- Average Pace (min/100m)
-
-## Error Handling
-
-The sync process is designed to fail gracefully:
-- Individual activity failures don't stop the entire sync
-- All errors are logged with context
-- The workflow will continue processing remaining activities
+1. **Fetch Activities**: Retrieves activities from Strava API for the specified time period
+2. **Filter**: Keeps only triathlon activities (Swim, Ride/Bike, Run)
+3. **Transform**: Converts Strava activity data to Notion page properties
+4. **Sync**: Creates new pages or updates existing ones based on Strava ID
+5. **Report**: Displays statistics about created, updated, and skipped activities
 
 ## Contributing
 
-Feel free to open issues or submit pull requests!
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-See [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Troubleshooting
+
+### Activities not syncing
+
+- Verify all GitHub secrets are set correctly
+- Check the Actions tab for error logs
+- Ensure your Notion database has all required properties
+- Verify your Strava API credentials are valid
+
+### Rate Limits
+
+Both Strava and Notion have API rate limits. The default 7-day sync window helps stay within these limits.
+
+## Acknowledgments
+
+- [Strava API](https://developers.strava.com/)
+- [Notion API](https://developers.notion.com/)
