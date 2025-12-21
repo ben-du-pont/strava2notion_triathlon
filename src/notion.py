@@ -372,10 +372,10 @@ class NotionClient:
         """
         properties = {}
 
-        # Distance (meters)
+        # Distance (meters to kilometers)
         if "distance" in activity:
-            properties["Distance (m)"] = {
-                "number": round(activity["distance"], 0)
+            properties["Distance (km)"] = {
+                "number": round(activity["distance"] / 1000, 2)
             }
 
         # Duration (seconds to minutes)
