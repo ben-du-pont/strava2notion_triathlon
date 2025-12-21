@@ -70,33 +70,55 @@ def sync_activities(days_back: int = 7, dry_run: bool = False) -> Dict[str, int]
         try:
             activity_id = activity.get("id")
             activity_name = activity.get("name", "Untitled")
-            activity_type = activity.get("type", activity.get("sport_type", "Unknown"))
-            
-            print(f"\nProcessing: {activity_name} ({activity_type})")
-            
+            # Get Strava sport type (Ride, Run, Swim)
+            strava_type = activity.get("sport_type") or activity.get("type", "Unknown")
+            activity_date = activity.get("start_date", "")
+
+            # Convert to Notion sport type (Ride -> Bike, others stay the same)
+            notion_type = strava_client.get_notion_sport_type(strava_type)
+
+            print(f"\nProcessing: {activity_name} ({strava_type} -> {notion_type})")
+
             if dry_run:
                 print("  [DRY RUN] Would sync this activity")
                 stats["skipped"] += 1
                 continue
-            
-            # Check if activity already exists in Notion
+
+            # DUPLICATE PREVENTION: Check if activity already exists in Notion
             existing_page = notion_client.find_activity_by_strava_id(activity_id)
-            
-            # Convert activity to Notion properties
-            properties = notion_client.activity_to_properties(activity)
-            
+
             if existing_page:
-                # Update existing page
-                page_id = existing_page["id"]
-                notion_client.update_page(page_id, properties)
-                print(f"  ✓ Updated existing page")
-                stats["updated"] += 1
+                # Skip if already exists - do not update
+                print(f"  ⊘ Skipped - activity already exists in Notion")
+                stats["skipped"] += 1
+                continue
+
+            # Convert activity to Notion properties with sport-specific fields
+            # Pass the Notion sport type so "Ride" becomes "Bike" in the Color Select field
+            properties = notion_client.activity_to_properties(activity, notion_sport_type=notion_type)
+
+            # Create new activity page
+            created_page = notion_client.create_page(properties)
+            print(f"  ✓ Created new activity page")
+            stats["created"] += 1
+
+            # Try to find matching planned activity (using Notion sport type)
+            planned_activity = notion_client.find_planned_activity(notion_type, activity_date)
+
+            if planned_activity:
+                planned_page_id = planned_activity["id"]
+                created_page_id = created_page["id"]
+
+                # Link the activity to the planned activity
+                notion_client.link_activity_to_planned(created_page_id, planned_page_id)
+                print(f"  ✓ Linked to planned activity")
+
+                # Mark the planned activity as done
+                notion_client.mark_planned_as_done(planned_page_id)
+                print(f"  ✓ Marked planned activity as Done")
             else:
-                # Create new page
-                notion_client.create_page(properties)
-                print(f"  ✓ Created new page")
-                stats["created"] += 1
-                
+                print(f"  ⓘ No matching planned activity found")
+
         except Exception as e:
             print(f"  ✗ Error processing activity: {str(e)}")
             stats["errors"] += 1
