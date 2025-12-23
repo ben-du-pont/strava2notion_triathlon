@@ -67,13 +67,14 @@ class NotionClient:
 
         return response.json().get("results", [])
     
-    def create_page(self, properties: Dict, database_id: Optional[str] = None) -> Dict:
+    def create_page(self, properties: Dict, database_id: Optional[str] = None, icon: Optional[str] = None) -> Dict:
         """
         Create a new page in a Notion database.
 
         Args:
             properties: Dictionary of page properties
             database_id: Database ID (defaults to activities_db_id)
+            icon: Optional emoji icon for the page
 
         Returns:
             Created page object
@@ -89,6 +90,13 @@ class NotionClient:
             "parent": {"database_id": db_id},
             "properties": properties
         }
+
+        # Add icon if provided
+        if icon:
+            payload["icon"] = {
+                "type": "emoji",
+                "emoji": icon
+            }
 
         # DEBUG: Print payload details
         print(f"  [DEBUG] Creating page in database: {db_id}")
@@ -132,7 +140,7 @@ class NotionClient:
         
         return response.json()
     
-    def activity_to_properties(self, activity: Dict, notion_sport_type: str = None) -> Dict:
+    def activity_to_properties(self, activity: Dict, notion_sport_type: str = None) -> tuple[Dict, str]:
         """
         Convert a Strava activity to Notion page properties with sport-specific fields.
 
@@ -141,7 +149,7 @@ class NotionClient:
             notion_sport_type: Pre-converted Notion sport type (e.g., "Bike" instead of "Ride")
 
         Returns:
-            Dictionary of Notion properties
+            Tuple of (properties dictionary, emoji icon string)
         """
         # Get sport type from Strava (will be "Ride", "Run", or "Swim")
         strava_sport_type = activity.get("sport_type") or activity.get("type", "Unknown")
@@ -150,10 +158,19 @@ class NotionClient:
         # This allows "Ride" -> "Bike" conversion
         display_sport_type = notion_sport_type if notion_sport_type else strava_sport_type
 
+        # Map sport type to emoji icon (using Unicode escape sequences)
+        sport_emoji_map = {
+            "Run": "\U0001F3C3",    # 🏃 runner
+            "Bike": "\U0001F6B4",   # 🚴 bicyclist
+            "Swim": "\U0001F3CA"    # 🏊 swimmer
+        }
+        emoji_icon = sport_emoji_map.get(display_sport_type, "\U0001F3C3")
+
         # DEBUG: Print activity details
         print(f"  [DEBUG] Converting activity to properties:")
         print(f"  [DEBUG]   Strava sport type: {strava_sport_type}")
         print(f"  [DEBUG]   Notion sport type: {display_sport_type}")
+        print(f"  [DEBUG]   Emoji icon: {emoji_icon}")
         print(f"  [DEBUG]   Activity name: {activity.get('name', 'Untitled Activity')}")
 
         # Base properties common to all activities
@@ -205,7 +222,7 @@ class NotionClient:
 
         print(f"  [DEBUG]   Total properties to send: {len(properties)}")
 
-        return properties
+        return properties, emoji_icon
 
     def _get_run_properties(self, activity: Dict) -> Dict:
         """
@@ -384,7 +401,7 @@ class NotionClient:
                 "number": round(activity["moving_time"] / 60, 1)
             }
 
-        # Swim Pace (min/100m) - as text format (e.g., "1:45 /100m")
+        # Swim Pace (min/100m) - as text format (e.g., "1:45")
         if "distance" in activity and "moving_time" in activity and activity["distance"] > 0:
             pace_min_per_100m = (activity["moving_time"] / 60) / (activity["distance"] / 100)
             pace_minutes = int(pace_min_per_100m)
@@ -393,7 +410,7 @@ class NotionClient:
                 "rich_text": [
                     {
                         "text": {
-                            "content": f"{pace_minutes}:{pace_seconds:02d} /100m"
+                            "content": f"{pace_minutes}:{pace_seconds:02d}"
                         }
                     }
                 ]
@@ -484,16 +501,44 @@ class NotionClient:
 
     def link_activity_to_planned(self, activity_page_id: str, planned_page_id: str) -> Dict:
         """
-        Link an activity to its planned activity.
+        Link activity to planned workout by updating the Planning Database.
+
+        This updates the Planning Database entry with the activity's ID in the
+        "Training Log Entries" field.
 
         Args:
-            activity_page_id: The ID of the activity page (in Training Log)
-            planned_page_id: The ID of the planned activity page (in Planning Database)
+            activity_page_id: The ID of the activity page (in Training Log database)
+            planned_page_id: The ID of the planned workout page (in Planning Database)
 
         Returns:
-            Updated activity page object
+            Updated Planning Database page object
         """
-        # Using your actual Training Log field name: "Linked Planned Workout"
+        # Update the Planning Database with the activity ID
+        properties = {
+            "Training Log Entries": {
+                "relation": [
+                    {"id": activity_page_id}
+                ]
+            }
+        }
+
+        return self.update_page(planned_page_id, properties)
+
+    def link_planned_to_activity(self, planned_page_id: str, activity_page_id: str) -> Dict:
+        """
+        Link planned workout to activity by updating the Training Log.
+
+        This updates the Training Log entry with the planned workout's ID in the
+        "Linked Planned Workout" field.
+
+        Args:
+            planned_page_id: The ID of the planned workout page (in Planning Database)
+            activity_page_id: The ID of the completed activity page (in Training Log database)
+
+        Returns:
+            Updated Training Log page object
+        """
+        # Update the Training Log with the planned workout ID
         properties = {
             "Linked Planned Workout": {
                 "relation": [

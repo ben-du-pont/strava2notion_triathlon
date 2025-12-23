@@ -95,10 +95,10 @@ def sync_activities(days_back: int = 7, dry_run: bool = False) -> Dict[str, int]
 
             # Convert activity to Notion properties with sport-specific fields
             # Pass the Notion sport type so "Ride" becomes "Bike" in the Color Select field
-            properties = notion_client.activity_to_properties(activity, notion_sport_type=notion_type)
+            properties, emoji_icon = notion_client.activity_to_properties(activity, notion_sport_type=notion_type)
 
-            # Create new activity page
-            created_page = notion_client.create_page(properties)
+            # Create new activity page with emoji icon
+            created_page = notion_client.create_page(properties, icon=emoji_icon)
             print(f"  ✓ Created new activity page")
             stats["created"] += 1
 
@@ -109,9 +109,13 @@ def sync_activities(days_back: int = 7, dry_run: bool = False) -> Dict[str, int]
                 planned_page_id = planned_activity["id"]
                 created_page_id = created_page["id"]
 
-                # Link the activity to the planned activity
+                # Link the training log to the planned workout (sets "Linked Planned Workout" in Training Log)
                 notion_client.link_activity_to_planned(created_page_id, planned_page_id)
-                print(f"  ✓ Linked to planned activity")
+                print(f"  ✓ Linked training log to planned workout")
+
+                # Also link from the planned workout side (sets "Training Log Entries" in Planning Database)
+                notion_client.link_planned_to_activity(planned_page_id, created_page_id)
+                print(f"  ✓ Updated planned workout with training log link")
 
                 # Mark the planned activity as done
                 notion_client.mark_planned_as_done(planned_page_id)
