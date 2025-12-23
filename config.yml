@@ -1,0 +1,442 @@
+# ============================================================================
+# STRAVA TO NOTION FIELD MAPPING CONFIGURATION
+# ============================================================================
+#
+# This file defines how Strava activity data is mapped to your Notion database fields.
+#
+# WHAT YOU CAN DO:
+# - Rename Notion fields to match your database schema
+# - Enable/disable specific fields per sport type
+# - Configure emoji icons and formatting options
+# - Understand how Strava data is converted and formatted
+#
+# FORMAT:
+#   strava_field: "Notion Field Name"  # Enable mapping
+#   strava_field: false                # Disable this field
+#   # strava_field: "Field Name"       # Comment out to disable
+#
+# IMPORTANT NOTES:
+# - Field names must EXACTLY match your Notion database (case-sensitive)
+# - The conversions (meters→km, seconds→minutes, etc.) are hardcoded
+# - See the "HOW CONVERSIONS WORK" section at the bottom for details
+# - Changes to this file take effect on the next sync
+
+# ============================================================================
+# COMMON FIELDS (All Activity Types)
+# ============================================================================
+
+common_fields:
+  # ============================================================
+  # BASIC ACTIVITY INFORMATION (Currently enabled)
+  # ============================================================
+
+  # Activity name (required - always synced as title)
+  name: "Name"
+
+  # Activity date (ISO 8601 format from Strava)
+  start_date: "Date"
+
+  # Strava activity ID (used for duplicate prevention)
+  id: "Strava ID"
+
+  # Link to Sports database (Run, Bike, Swim)
+  # Set to false if you don't use a Sports database
+  sport_type_relation: "Sport Type"
+
+  # Uncomment to add a Color Select field (select type)
+  # Note: This is optional since Sport Type relation provides similar functionality
+  sport_type_select: "Color Select"
+
+  # ============================================================
+  # ADDITIONAL BASIC FIELDS (Currently disabled)
+  # ============================================================
+
+  # Activity description/notes (rich text field)
+  description: "Notes / Comments"
+
+  # Activity type (deprecated - use sport_type_relation instead)
+  # type: "Activity Type"
+
+  # Local start time (ISO 8601 format in local timezone)
+  # start_date_local: "Local Start Time"
+
+  # Timezone of the activity
+  # timezone: "Timezone"
+
+  # External ID from the device/app
+  # external_id: "External ID"
+
+  # Upload ID
+  # upload_id: "Upload ID"
+
+  # ============================================================
+  # LOCATION FIELDS (Currently disabled)
+  # ============================================================
+
+  # Starting coordinates [lat, lng] (would need special handling for arrays)
+  # start_latlng: "Start Coordinates"
+
+  # Ending coordinates [lat, lng]
+  # end_latlng: "End Coordinates"
+
+  # City name where activity started
+  # location_city: "City"
+
+  # State/province where activity started
+  # location_state: "State"
+
+  # Country where activity started
+  # location_country: "Country"
+
+  # Map polyline data (encoded polyline string - complex object)
+  # map_polyline: "Map Route"
+
+  # ============================================================
+  # TIME FIELDS (Currently disabled)
+  # ============================================================
+
+  # Total elapsed time including stops (seconds)
+  # elapsed_time: "Elapsed Time"
+
+  # UTC offset in seconds
+  # utc_offset: "UTC Offset"
+
+  # ============================================================
+  # ELEVATION FIELDS (Currently disabled)
+  # ============================================================
+
+  # Highest elevation point in meters
+  # elev_high: "Max Elevation"
+
+  # Lowest elevation point in meters
+  # elev_low: "Min Elevation"
+
+  # ============================================================
+  # SPEED METRICS (Currently disabled)
+  # ============================================================
+
+  # Average speed in meters per second (Strava provides m/s)
+  # Note: For cycling, use the calculated average_speed in bike_fields instead
+  # average_speed_raw: "Average Speed (m/s)"
+
+  # Maximum speed in meters per second
+  # max_speed: "Max Speed"
+
+  # ============================================================
+  # WEATHER & ENVIRONMENT (Currently disabled)
+  # ============================================================
+
+  # Average temperature in Celsius
+  average_temp: "Temperature"
+
+  # ============================================================
+  # ACTIVITY FLAGS (Currently disabled)
+  # ============================================================
+
+  # Whether activity was done on indoor trainer
+  # trainer: "Indoor Trainer"
+
+  # Whether activity is marked as a commute
+  # commute: "Commute"
+
+  # Whether activity was manually created (not from device)
+  # manual: "Manual Entry"
+
+  # Whether activity is private
+  # private: "Private"
+
+  # Whether activity has been flagged
+  # flagged: "Flagged"
+
+  # ============================================================
+  # GEAR & EQUIPMENT (Currently disabled)
+  # ============================================================
+
+  # Gear ID (bike, shoes, etc. - would need lookup to get gear name)
+  # gear_id: "Gear ID"
+
+  # Name of recording device (e.g., "Garmin Forerunner 945")
+  # device_name: "Device"
+
+  # Whether device measures power (boolean)
+  # device_watts: "Device Has Power"
+
+  # ============================================================
+  # SOCIAL & ENGAGEMENT (Currently disabled)
+  # ============================================================
+
+  # Number of kudos received
+  # kudos_count: "Kudos"
+
+  # Number of comments
+  # comment_count: "Comments"
+
+  # Number of athletes who participated
+  # athlete_count: "Athletes"
+
+  # Number of achievements earned
+  # achievement_count: "Achievements"
+
+  # Number of personal records set
+  # pr_count: "Personal Records"
+
+  # Number of photos
+  # photo_count: "Photos"
+
+  # Total photo count including Instagram
+  # total_photo_count: "Total Photos"
+
+  # ============================================================
+  # ADVANCED PERFORMANCE (Currently disabled)
+  # ============================================================
+
+  # Weighted average power (for cycling with power meter)
+  # weighted_average_watts: "Normalized Power"
+
+  # Total energy in kilojoules
+  # kilojoules: "Energy (kJ)"
+
+  # Strava suffer score (intensity rating)
+  # suffer_score: "Suffer Score"
+
+  # Whether heart rate data is available (boolean)
+  # has_heartrate: "Has Heart Rate Data"
+
+  # Workout type classification (integer: 0=default, 1=race, 2=long run, 3=workout)
+  # workout_type: "Workout Type"
+
+  # ============================================================
+  # SPLITS & SEGMENTS (Currently disabled - complex objects)
+  # ============================================================
+  # Note: These are complex nested objects that would need special handling
+
+  # Metric splits data (array of split objects)
+  # splits_metric: "Splits (Metric)"
+
+  # Imperial splits data (array of split objects)
+  # splits_standard: "Splits (Imperial)"
+
+  # Lap data (array of lap objects)
+  # laps: "Laps"
+
+  # Segment efforts (array of segment effort objects)
+  # segment_efforts: "Segments"
+
+  # Best efforts (array of best effort objects)
+  # best_efforts: "Best Efforts"
+
+# ============================================================================
+# RUNNING-SPECIFIC FIELDS
+# ============================================================================
+
+run_fields:
+  # Distance in kilometers (Strava provides meters, divided by 1000)
+  distance: "Distance (km)"
+
+  # Duration in minutes (Strava provides seconds, divided by 60)
+  moving_time: "Duration (min)"
+
+  # Average pace as number (min/km) for calculations
+  # Calculated as: (moving_time / 60) / (distance / 1000)
+  average_pace_number: "Average pace"
+
+  # Pace as formatted text (e.g., "5:30 /km" or "5:30" if suffix disabled)
+  # Formatted as MM:SS per km
+  pace_text: "Pace"
+
+  # Elevation gain in meters (Strava provides meters, no conversion)
+  total_elevation_gain: "Elevation Gain (m)"
+
+  # Average heart rate (bpm)
+  average_heartrate: "Heart Rate Avg"
+
+  # Maximum heart rate (bpm)
+  max_heartrate: "Heart Rate Max"
+
+  # Average cadence (steps per minute)
+  # Note: Strava returns steps per second, automatically multiplied by 2 for SPM
+  average_cadence: "Average Cadence"
+
+  # Calories burned
+  calories: "Calories"
+
+# ============================================================================
+# CYCLING-SPECIFIC FIELDS
+# ============================================================================
+
+bike_fields:
+  # Distance in kilometers (Strava provides meters, divided by 1000)
+  distance: "Distance (km)"
+
+  # Duration in minutes (Strava provides seconds, divided by 60)
+  moving_time: "Duration (min)"
+
+  # Average speed in km/h
+  # Calculated as: (distance / 1000) / (moving_time / 3600)
+  average_speed: "Speed (km/h)"
+
+  # Elevation gain in meters (Strava provides meters, no conversion)
+  total_elevation_gain: "Elevation Gain (m)"
+
+  # Average heart rate (bpm)
+  average_heartrate: "Heart Rate Avg"
+
+  # Maximum heart rate (bpm)
+  max_heartrate: "Heart Rate Max"
+
+  # Average power in watts (requires power meter)
+  average_watts: "Power Avg (Watts)"
+
+  # Maximum power in watts (requires power meter)
+  max_watts: "Power Max (Watts)"
+
+  # Average cadence (RPM - revolutions per minute)
+  # Strava provides RPM directly for cycling
+  average_cadence: "Average Cadence"
+
+  # Calories burned
+  calories: "Calories"
+
+# ============================================================================
+# SWIMMING-SPECIFIC FIELDS
+# ============================================================================
+
+swim_fields:
+  # Distance in kilometers (Strava provides meters, divided by 1000)
+  # Note: You could change this to meters by setting a different field name
+  # and adjusting distance_unit_divisor to 1 in options
+  distance: "Distance (km)"
+
+  # Duration in minutes (Strava provides seconds, divided by 60)
+  moving_time: "Duration (min)"
+
+  # Swim pace as formatted text (e.g., "1:45" for min/100m)
+  # Calculated as: (moving_time / 60) / (distance / 100)
+  # Formatted as MM:SS per 100m
+  swim_pace_text: "Swim Pace (min/100m)"
+
+  # Average heart rate (bpm) - if available with swim tracking device
+  average_heartrate: "Heart Rate Avg"
+
+  # Maximum heart rate (bpm)
+  max_heartrate: "Heart Rate Max"
+
+  # Stroke rate (strokes per minute)
+  # Strava provides stroke rate directly
+  average_cadence: "Stroke Rate"
+
+  # Calories burned
+  calories: "Calories"
+
+# ============================================================================
+# EMOJI ICONS
+# ============================================================================
+
+# Emoji icons for different sport types (using Unicode escape sequences)
+# These appear as the page icon in Notion
+sport_icons:
+  Run: "\U0001F3C3"    # runner emoji
+  Bike: "\U0001F6B4"   # bicyclist emoji
+  Swim: "\U0001F3CA"   # swimmer emoji
+
+# ============================================================================
+# ADVANCED OPTIONS
+# ============================================================================
+
+options:
+  # Include "/km" suffix in running pace text (e.g., "5:30 /km" vs "5:30")
+  include_pace_suffix: true
+
+  # Distance conversion (Strava provides distance in meters)
+  # 1000 = convert to kilometers (default)
+  # 1 = keep as meters (not recommended for run/bike, but could be useful for swim)
+  distance_unit_divisor: 1000
+
+  # Time conversion (Strava provides time in seconds)
+  # 60 = convert to minutes (default)
+  # 1 = keep as seconds
+  # 3600 = convert to hours
+  time_unit_divisor: 60
+
+# ============================================================================
+# HOW CONVERSIONS WORK
+# ============================================================================
+#
+# All conversions are hardcoded in the notion.py implementation:
+#
+# DISTANCE:
+#   - Strava provides: meters
+#   - Conversion: distance / distance_unit_divisor
+#   - Example: 5000 meters / 1000 = 5.0 km
+#
+# TIME (moving_time):
+#   - Strava provides: seconds
+#   - Conversion: moving_time / time_unit_divisor
+#   - Example: 1800 seconds / 60 = 30.0 minutes
+#
+# PACE (running):
+#   - Formula: (moving_time / 60) / (distance / 1000)
+#   - This gives minutes per kilometer
+#   - Example: (1800 / 60) / (5000 / 1000) = 30 / 5 = 6.0 min/km
+#   - Formatted as: "6:00 /km" (or "6:00" if include_pace_suffix is false)
+#
+# SPEED (cycling):
+#   - Formula: (distance / 1000) / (moving_time / 3600)
+#   - This gives kilometers per hour
+#   - Example: (20000 / 1000) / (3600 / 3600) = 20 / 1 = 20.0 km/h
+#
+# SWIM PACE:
+#   - Formula: (moving_time / 60) / (distance / 100)
+#   - This gives minutes per 100 meters
+#   - Example: (1200 / 60) / (1000 / 100) = 20 / 10 = 2.0 min/100m
+#   - Formatted as: "2:00"
+#
+# CADENCE (running):
+#   - Strava provides: steps per second (one foot)
+#   - Conversion: average_cadence * 2 (to get total steps per minute)
+#   - Example: 1.4 steps/sec * 2 = 2.8 → rounded to 3 SPM
+#
+# CADENCE (cycling):
+#   - Strava provides: RPM (revolutions per minute)
+#   - No conversion needed
+#
+# CADENCE (swimming):
+#   - Strava provides: strokes per minute
+#   - No conversion needed
+#
+# ============================================================================
+# HOW TO ENABLE ADDITIONAL FIELDS
+# ============================================================================
+#
+# All the commented fields in the common_fields section are automatically
+# supported! To enable them:
+#
+# 1. Uncomment the field in config.yml
+# 2. Create a matching field in your Notion database with the exact name
+# 3. Choose the correct Notion field type:
+#    - Text fields → Use "Text" or "Rich text" in Notion
+#    - Number fields → Use "Number" in Notion
+#    - Boolean fields → Use "Checkbox" in Notion
+#    - Select fields → Use "Select" in Notion
+#
+# Example - to enable device name:
+#   1. Uncomment: device_name: "Device"
+#   2. Add "Device" field (Text type) to your Notion Training Log database
+#   3. Next sync will include the device name!
+#
+# FIELD TYPES MAPPING:
+# - description, timezone, device_name, location_city, location_state,
+#   location_country → Text/Rich text fields in Notion
+#
+# - elapsed_time, elev_high, elev_low, max_speed, average_temp, kudos_count,
+#   comment_count, photo_count, suffer_score, weighted_average_watts,
+#   kilojoules → Number fields in Notion
+#
+# - trainer, commute, manual, private, flagged, has_heartrate, device_watts
+#   → Checkbox fields in Notion
+#
+# - type → Select field in Notion
+#
+# Note: Complex fields (start_latlng, end_latlng, map_polyline, splits,
+# segments, laps, best_efforts) require custom code to handle and are not
+# currently auto-supported.
